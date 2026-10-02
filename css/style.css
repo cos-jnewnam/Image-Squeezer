@@ -290,3 +290,22 @@ body {
   .bar > i { transition: none; }
   .spinner { animation-duration: 2s; }
 }
+
+.offline {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem;
+}
+
+.offline h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+}
+
+.offline p {
+  color: var(--ink-soft);
+}
+
+.offline a {
+  color: var(--blue);
+}
