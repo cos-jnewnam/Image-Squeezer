@@ -29,6 +29,15 @@
       <label for="maxw">Max width</label>
       <input id="maxw" type="number" inputmode="numeric" min="100" max="10000" step="50" value="2000">
       <span>px. Smaller images are never enlarged.</span>
+
+      <label for="format">Save as</label>
+      <select id="format">
+        <option value="auto">Auto</option>
+        <option value="jpeg">JPG</option>
+        <option value="png">PNG</option>
+        <option value="webp">WebP</option>
+      </select>
+      <span id="format-hint">Auto picks whichever format comes out smallest.</span>
     </div>
 
     <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>

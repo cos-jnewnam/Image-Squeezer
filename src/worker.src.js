@@ -140,15 +140,67 @@ function hasAlpha(data) {
   return false;
 }
 
+// JPEG has no alpha, so blend onto white before encoding.
+function flattenToWhite(data) {
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a === 255) continue;
+    const inv = 255 - a;
+    data[i] = (data[i] * a + 255 * inv) / 255;
+    data[i + 1] = (data[i + 1] * a + 255 * inv) / 255;
+    data[i + 2] = (data[i + 2] * a + 255 * inv) / 255;
+    data[i + 3] = 255;
+  }
+}
+
+// Builds an exact palette, or null when the image needs more than 256 colors.
+function exactPalette(data) {
+  const seen = new Map();
+  const indices = new Uint8Array(data.length / 4);
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    const key = ((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]) >>> 0;
+    let index = seen.get(key);
+    if (index === undefined) {
+      if (seen.size === 256) return null;
+      index = seen.size;
+      seen.set(key, index);
+    }
+    indices[p] = index;
+  }
+  const palette = new Uint8Array(seen.size * 4);
+  let n = 0;
+  for (const key of seen.keys()) {
+    palette[n] = key >>> 24;
+    palette[n + 1] = (key >>> 16) & 0xff;
+    palette[n + 2] = (key >>> 8) & 0xff;
+    palette[n + 3] = key & 0xff;
+    n += 4;
+  }
+  return { palette, indices };
+}
+
 // ---------- encoding ----------
+
+async function shrinkPng(png) {
+  await readyOxipng();
+  const optimised = optimise(png, 2, false, true);
+  return optimised.length < png.length ? optimised : png;
+}
 
 async function encodePng(imageData) {
   await Promise.all([readyQuant(), readyOxipng()]);
   const { width, height, data } = imageData;
   const q = quantize_image(new Uint8Array(data.buffer, data.byteOffset, data.length), width, height, 256);
-  const png = await encodeIndexedPng({ width, height, palette: q.palette, indices: q.indices });
-  const optimised = optimise(png, 2, false, true);
-  return optimised.length < png.length ? optimised : png;
+  return shrinkPng(await encodeIndexedPng({ width, height, palette: q.palette, indices: q.indices }));
+}
+
+// Keeps every pixel: indexed when the image fits 256 colors, otherwise full colour.
+async function encodeLosslessPng(imageData, canvas) {
+  const { width, height } = imageData;
+  const exact = exactPalette(imageData.data);
+  if (exact) return shrinkPng(await encodeIndexedPng({ width, height, ...exact }));
+  const blob = await canvas.convertToBlob({ type: 'image/png' });
+  return shrinkPng(new Uint8Array(await blob.arrayBuffer()));
 }
 
 async function encodeJpg(imageData) {
@@ -163,7 +215,7 @@ async function encodeWebp(canvas) {
 
 // ---------- job ----------
 
-async function compress({ buffer, maxWidth }) {
+async function compress({ buffer, maxWidth, format }) {
   const bytes = new Uint8Array(buffer);
   const kind = sniff(bytes);
   if (!kind) throw new Error('This file is not a supported image.');
@@ -194,12 +246,19 @@ async function compress({ buffer, maxWidth }) {
   let outKind;
   let out = null;
 
-  if (kind === 'webp') {
+  if (format === 'webp' || (format === 'auto' && kind === 'webp')) {
     out = await encodeWebp(canvas);
     outKind = 'webp';
+    if (!out && format === 'webp') throw new Error('This browser cannot save WebP files.');
+  }
+  if (!out && format === 'png') {
+    out = await encodeLosslessPng(imageData, canvas);
+    outKind = 'png';
   }
   if (!out) {
-    outKind = kind === 'jpeg' ? 'jpeg' : kind === 'png' || kind === 'gif' || alpha ? 'png' : 'jpeg';
+    outKind =
+      format === 'jpeg' ? 'jpeg' : kind === 'jpeg' ? 'jpeg' : kind === 'png' || kind === 'gif' || alpha ? 'png' : 'jpeg';
+    if (outKind === 'jpeg' && alpha) flattenToWhite(imageData.data);
     out = outKind === 'png' ? await encodePng(imageData) : await encodeJpg(imageData);
   }
 

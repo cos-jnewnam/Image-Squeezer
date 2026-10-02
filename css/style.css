@@ -84,6 +84,7 @@ body {
 .drop:focus-visible,
 .btn:focus-visible,
 .settings input:focus-visible,
+.settings select:focus-visible,
 .row-btn:focus-visible {
   outline: 3px solid var(--blue);
   outline-offset: 2px;
@@ -112,8 +113,8 @@ body {
 
 .settings label { color: var(--ink); font-weight: 600; }
 
-.settings input {
-  width: 5.5rem;
+.settings input,
+.settings select {
   padding: 0.3rem 0.5rem;
   border: 1px solid var(--line);
   border-radius: 0.375rem;
@@ -122,6 +123,8 @@ body {
   font: inherit;
   font-variant-numeric: tabular-nums;
 }
+
+.settings input { width: 5.5rem; }
 
 .notice {
   margin: 1rem 0 0;

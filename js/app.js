@@ -9,6 +9,8 @@ const $ = (id) => document.getElementById(id);
 const drop = $('drop');
 const picker = $('picker');
 const maxw = $('maxw');
+const format = $('format');
+const formatHint = $('format-hint');
 const notice = $('notice');
 const list = $('list');
 const actions = $('actions');
@@ -26,7 +28,23 @@ let nextId = 1;
 try {
   const saved = Number(localStorage.getItem('maxWidth'));
   if (saved >= 100 && saved <= 10000) maxw.value = saved;
+  const savedFormat = localStorage.getItem('format');
+  if (savedFormat && [...format.options].some((o) => o.value === savedFormat)) format.value = savedFormat;
 } catch {}
+
+const FORMAT_HINTS = {
+  auto: 'Auto picks whichever format comes out smallest.',
+  jpeg: 'Transparent areas are filled with white.',
+  png: 'Lossless, so photos can come out larger than the original.',
+  webp: 'Small files with transparency, supported by every current browser.',
+};
+
+function readFormat() {
+  const v = format.value;
+  formatHint.textContent = FORMAT_HINTS[v] || '';
+  try { localStorage.setItem('format', v); } catch {}
+  return v;
+}
 
 function readMaxWidth() {
   let v = Math.round(Number(maxw.value));
@@ -38,6 +56,8 @@ function readMaxWidth() {
 }
 
 maxw.addEventListener('change', readMaxWidth);
+format.addEventListener('change', readFormat);
+readFormat();
 
 // ---------- helpers ----------
 
@@ -107,7 +127,7 @@ async function run(slot, item) {
   setStatus(item, 'working');
   try {
     const buffer = await item.file.arrayBuffer();
-    slot.worker.postMessage({ id: item.id, buffer, maxWidth: item.maxWidth }, [buffer]);
+    slot.worker.postMessage({ id: item.id, buffer, maxWidth: item.maxWidth, format: item.format }, [buffer]);
   } catch {
     slot.item = null;
     fail(item, 'This file could not be read.');
@@ -294,8 +314,9 @@ function addFiles(fileList) {
   say(skipped ? `The limit is ${MAX_FILES} images at a time. ${skipped} ${skipped === 1 ? 'file was' : 'files were'} skipped.` : '');
 
   const maxWidth = readMaxWidth();
+  const outFormat = readFormat();
   for (const file of accepted) {
-    const item = { id: nextId++, file, status: 'queued', maxWidth };
+    const item = { id: nextId++, file, status: 'queued', maxWidth, format: outFormat };
     items.push(item);
     addRow(item);
     if (file.size > MAX_BYTES) {
