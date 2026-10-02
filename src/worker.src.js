@@ -312,8 +312,8 @@ async function compress({ buffer, maxWidth, format, quality, target }) {
   if (outKind !== kind) note = 'converted';
   if (goal && outKind !== 'png') note = missed ? 'target-missed' : 'target';
 
-  // Falling back to the original would defeat a size target, so only do it when none is set.
-  if (!goal && !resized && outKind === kind && out.length >= bytes.length) {
+  // Falling back to the original only helps if it also respects the target.
+  if (!resized && outKind === kind && out.length >= bytes.length && (!goal || bytes.length <= goal)) {
     out = bytes;
     note = 'kept';
   }

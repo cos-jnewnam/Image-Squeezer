@@ -20,6 +20,7 @@ const notice = $('notice');
 const list = $('list');
 const actions = $('actions');
 const zipBtn = $('zip');
+const shareBtn = $('share');
 const clearBtn = $('clear');
 const installBtn = $('install');
 const compareDlg = $('compare');
@@ -241,6 +242,19 @@ function removeBtn(item) {
   return b;
 }
 
+// Sharing files is only wired up on some platforms, so ask before offering it.
+function canShareFiles(files) {
+  return typeof navigator.canShare === 'function' && navigator.canShare({ files });
+}
+
+async function shareFiles(files, title) {
+  try {
+    await navigator.share({ files, title });
+  } catch (err) {
+    if (err.name !== 'AbortError') say('Sharing failed: ' + err.message);
+  }
+}
+
 function render(item) {
   const { thumb, tools, detail } = item.el;
   thumb.replaceChildren();
@@ -281,6 +295,17 @@ function render(item) {
   dl.setAttribute('aria-label', 'Download ' + r.name);
   dl.addEventListener('click', () => download(r.blob, r.name));
   tools.append(dl, removeBtn(item));
+
+  const shareFile = new File([r.blob], r.name, { type: r.blob.type });
+  if (canShareFiles([shareFile])) {
+    const sh = document.createElement('button');
+    sh.type = 'button';
+    sh.className = 'row-btn';
+    sh.textContent = 'Share';
+    sh.setAttribute('aria-label', 'Share ' + r.name);
+    sh.addEventListener('click', () => shareFiles([shareFile], r.name));
+    tools.insertBefore(sh, tools.lastChild);
+  }
 
   // HEIC originals cannot be shown in an img, so there is nothing to compare against.
   if (r.from !== 'heic') {
@@ -461,6 +486,10 @@ function refresh() {
   const busy = items.some((i) => i.status === 'queued' || i.status === 'working');
   zipBtn.disabled = busy || done.length === 0;
 
+  const files = done.map((i) => new File([i.result.blob], i.result.name, { type: i.result.blob.type }));
+  shareBtn.hidden = !files.length || !canShareFiles(files);
+  shareBtn.disabled = busy;
+
   if (done.length) {
     const before = done.reduce((n, i) => n + i.file.size, 0);
     const after = done.reduce((n, i) => n + i.result.blob.size, 0);
@@ -482,6 +511,14 @@ zipBtn.addEventListener('click', async () => {
   } finally {
     refresh();
   }
+});
+
+shareBtn.addEventListener('click', async () => {
+  const done = items.filter((i) => i.status === 'done');
+  if (!done.length) return;
+  const files = done.map((i) => new File([i.result.blob], i.result.name, { type: i.result.blob.type }));
+  if (!canShareFiles(files)) return;
+  await shareFiles(files, done.length === 1 ? files[0].name : 'Compressed images');
 });
 
 clearBtn.addEventListener('click', () => {
