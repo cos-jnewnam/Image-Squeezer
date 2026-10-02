@@ -129,7 +129,8 @@ body {
 
 .settings label[for="maxw"],
 .settings label[for="format"],
-.settings label[for="quality"] { min-width: 5.5rem; }
+.settings label[for="quality"],
+.settings label[for="target"] { min-width: 5.5rem; }
 
 .settings output {
   min-width: 2ch;

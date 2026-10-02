@@ -4,6 +4,9 @@ import initQuant, { quantize_image } from '@panda-ai/imagequant';
 import { encodeIndexedPng } from './png-indexed.js';
 
 const DEFAULT_QUALITY = 80;
+const MIN_QUALITY = 20;
+const MAX_QUALITY = 95;
+const TARGET_STEPS = 6;
 
 // ---------- wasm loading ----------
 
@@ -212,9 +215,30 @@ async function encodeWebp(canvas, quality) {
   return blob.type === 'image/webp' ? new Uint8Array(await blob.arrayBuffer()) : null;
 }
 
+// Binary searches quality for the largest result that still fits the target.
+async function fitToTarget(encodeAt, target) {
+  let lo = MIN_QUALITY;
+  let hi = MAX_QUALITY;
+  let fit = null;
+  let smallest = null;
+  for (let i = 0; i < TARGET_STEPS && lo <= hi; i++) {
+    const q = Math.round((lo + hi) / 2);
+    const out = await encodeAt(q);
+    if (!out) break;
+    if (!smallest || out.length < smallest.length) smallest = out;
+    if (out.length <= target) {
+      fit = out;
+      lo = q + 1;
+    } else {
+      hi = q - 1;
+    }
+  }
+  return fit ? { out: fit, met: true } : { out: smallest, met: false };
+}
+
 // ---------- job ----------
 
-async function compress({ buffer, maxWidth, format, quality }) {
+async function compress({ buffer, maxWidth, format, quality, target }) {
   const bytes = new Uint8Array(buffer);
   const kind = sniff(bytes);
   if (!kind) throw new Error('This file is not a supported image.');
@@ -243,13 +267,24 @@ async function compress({ buffer, maxWidth, format, quality }) {
 
   const alpha = hasAlpha(imageData.data);
   const q = Number.isFinite(quality) ? Math.min(95, Math.max(40, Math.round(quality))) : DEFAULT_QUALITY;
+  const goal = Number.isFinite(target) && target > 0 ? Math.round(target) : 0;
   let outKind;
   let out = null;
+  let missed = false;
 
   if (format === 'webp' || (format === 'auto' && kind === 'webp')) {
-    out = await encodeWebp(canvas, q);
-    outKind = 'webp';
-    if (!out && format === 'webp') throw new Error('This browser cannot save WebP files.');
+    const probe = await encodeWebp(canvas, q);
+    if (!probe && format === 'webp') throw new Error('This browser cannot save WebP files.');
+    if (probe) {
+      outKind = 'webp';
+      if (goal && probe.length > goal) {
+        const fit = await fitToTarget((v) => encodeWebp(canvas, v), goal);
+        out = fit.out || probe;
+        missed = !fit.met;
+      } else {
+        out = probe;
+      }
+    }
   }
   if (!out && format === 'png') {
     out = await encodeLosslessPng(imageData, canvas);
@@ -258,14 +293,27 @@ async function compress({ buffer, maxWidth, format, quality }) {
   if (!out) {
     outKind =
       format === 'jpeg' ? 'jpeg' : kind === 'jpeg' ? 'jpeg' : kind === 'png' || kind === 'gif' || alpha ? 'png' : 'jpeg';
-    if (outKind === 'jpeg' && alpha) flattenToWhite(imageData.data);
-    out = outKind === 'png' ? await encodePng(imageData) : await encodeJpg(imageData);
+    if (outKind === 'png') {
+      out = await encodePng(imageData);
+    } else {
+      if (alpha) flattenToWhite(imageData.data);
+      const probe = await encodeJpg(imageData, q);
+      if (goal && probe.length > goal) {
+        const fit = await fitToTarget((v) => encodeJpg(imageData, v), goal);
+        out = fit.out || probe;
+        missed = !fit.met;
+      } else {
+        out = probe;
+      }
+    }
   }
 
   let note = resized ? 'resized' : '';
   if (outKind !== kind) note = 'converted';
+  if (goal && outKind !== 'png') note = missed ? 'target-missed' : 'target';
 
-  if (!resized && outKind === kind && out.length >= bytes.length) {
+  // Falling back to the original would defeat a size target, so only do it when none is set.
+  if (!goal && !resized && outKind === kind && out.length >= bytes.length) {
     out = bytes;
     note = 'kept';
   }
@@ -274,6 +322,7 @@ async function compress({ buffer, maxWidth, format, quality }) {
     buffer: out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength),
     kind: outKind,
     mime: MIME[outKind],
+    target: goal,
     width,
     height,
     origWidth,

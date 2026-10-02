@@ -14,6 +14,8 @@ const formatHint = $('format-hint');
 const quality = $('quality');
 const qualityValue = $('quality-value');
 const qualityHint = $('quality-hint');
+const target = $('target');
+const targetHint = $('target-hint');
 const notice = $('notice');
 const list = $('list');
 const actions = $('actions');
@@ -42,6 +44,8 @@ try {
   if (savedFormat && [...format.options].some((o) => o.value === savedFormat)) format.value = savedFormat;
   const savedQuality = Number(localStorage.getItem('quality'));
   if (savedQuality >= 40 && savedQuality <= 95) quality.value = savedQuality;
+  const savedTarget = Number(localStorage.getItem('target'));
+  if (savedTarget >= 0 && savedTarget <= 20000) target.value = savedTarget;
 } catch {}
 
 const FORMAT_HINTS = {
@@ -54,15 +58,29 @@ const FORMAT_HINTS = {
 function readFormat() {
   const v = format.value;
   formatHint.textContent = FORMAT_HINTS[v] || '';
-  // PNG output is lossless, so the slider would do nothing.
+  // PNG output is lossless, so neither the slider nor a size target can apply.
   const lossless = v === 'png';
   quality.disabled = lossless;
   quality.parentElement.classList.toggle('off', lossless);
   qualityHint.textContent = lossless
     ? 'Not used, because PNG is lossless.'
     : 'Lower means smaller files and more blur.';
+  target.disabled = lossless;
+  target.parentElement.classList.toggle('off', lossless);
+  targetHint.textContent = lossless
+    ? 'Not used, because PNG is lossless.'
+    : 'KB. Leave at 0 to use the quality setting instead.';
   try { localStorage.setItem('format', v); } catch {}
   return v;
+}
+
+function readTarget() {
+  let v = Math.round(Number(target.value));
+  if (!Number.isFinite(v) || v < 0) v = 0;
+  if (v > 20000) v = 20000;
+  target.value = v;
+  try { localStorage.setItem('target', String(v)); } catch {}
+  return v * 1024;
 }
 
 function readQuality() {
@@ -87,6 +105,7 @@ function readMaxWidth() {
 maxw.addEventListener('change', readMaxWidth);
 format.addEventListener('change', readFormat);
 quality.addEventListener('input', readQuality);
+target.addEventListener('change', readTarget);
 readFormat();
 readQuality();
 
@@ -159,7 +178,14 @@ async function run(slot, item) {
   try {
     const buffer = await item.file.arrayBuffer();
     slot.worker.postMessage(
-      { id: item.id, buffer, maxWidth: item.maxWidth, format: item.format, quality: item.quality },
+      {
+        id: item.id,
+        buffer,
+        maxWidth: item.maxWidth,
+        format: item.format,
+        quality: item.quality,
+        target: item.target,
+      },
       [buffer]
     );
   } catch {
@@ -298,6 +324,8 @@ function render(item) {
 
 function describe(r) {
   const dims = `${r.width} \u00d7 ${r.height} px`;
+  if (r.note === 'target') return `Met the ${fmtBytes(r.target)} target. ${dims}`;
+  if (r.note === 'target-missed') return `As small as it goes, still over ${fmtBytes(r.target)}. ${dims}`;
   if (r.note === 'resized') return `Resized from ${r.origWidth} px wide. ${dims}`;
   if (r.note === 'converted') return `Converted from ${r.from.toUpperCase()} to ${EXT[r.kind].toUpperCase()}. ${dims}`;
   if (r.note === 'kept') return `Already compressed, original kept. ${dims}`;
@@ -359,6 +387,7 @@ function succeed(item, data) {
     kind: data.kind,
     from: data.from,
     note: data.note,
+    target: data.target,
     width: data.width,
     height: data.height,
     origWidth: data.origWidth,
@@ -401,8 +430,17 @@ function addFiles(fileList) {
   const maxWidth = readMaxWidth();
   const outFormat = readFormat();
   const outQuality = readQuality();
+  const outTarget = readTarget();
   for (const file of accepted) {
-    const item = { id: nextId++, file, status: 'queued', maxWidth, format: outFormat, quality: outQuality };
+    const item = {
+      id: nextId++,
+      file,
+      status: 'queued',
+      maxWidth,
+      format: outFormat,
+      quality: outQuality,
+      target: outTarget,
+    };
     items.push(item);
     addRow(item);
     if (file.size > MAX_BYTES) {
