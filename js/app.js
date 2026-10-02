@@ -16,6 +16,7 @@ const list = $('list');
 const actions = $('actions');
 const zipBtn = $('zip');
 const clearBtn = $('clear');
+const installBtn = $('install');
 const total = $('total');
 
 const items = [];
@@ -413,3 +414,30 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
+
+// ---------- install ----------
+
+// Only browsers that fire this event can install from a button, so it stays hidden elsewhere.
+let installPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  installBtn.hidden = false;
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installBtn.disabled = true;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  // The saved event cannot be reused, so the button goes away either way.
+  installPrompt = null;
+  installBtn.disabled = false;
+  installBtn.hidden = true;
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  installBtn.hidden = true;
+});
