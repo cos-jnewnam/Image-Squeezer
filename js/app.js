@@ -461,6 +461,22 @@ async function collectShared() {
 
 collectShared();
 
+// ---------- opened from the operating system ----------
+
+// Fires when the installed app is used to open image files directly.
+if ('launchQueue' in window && 'LaunchParams' in window && 'files' in LaunchParams.prototype) {
+  launchQueue.setConsumer(async (params) => {
+    if (!params || !params.files || !params.files.length) return;
+    const files = [];
+    for (const handle of params.files) {
+      try {
+        files.push(await handle.getFile());
+      } catch {}
+    }
+    if (files.length) addFiles(files);
+  });
+}
+
 // ---------- offline support ----------
 
 if ('serviceWorker' in navigator) {
