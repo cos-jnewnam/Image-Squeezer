@@ -307,6 +307,83 @@ body {
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn:not(:disabled):hover { filter: brightness(1.06); }
 
+.compare-dlg {
+  width: min(52rem, 92vw);
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.compare-dlg::backdrop { background: rgb(0 0 0 / 0.6); }
+
+.compare {
+  position: relative;
+  display: grid;
+  width: 100%;
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: repeating-conic-gradient(var(--line) 0% 25%, transparent 0% 50%) 50% / 1.25rem 1.25rem;
+}
+
+.compare img {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+}
+
+#compare-after { clip-path: inset(0 0 0 var(--pos, 50%)); }
+
+.compare-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--pos, 50%);
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4);
+}
+
+.compare-tag {
+  position: absolute;
+  top: 0.5rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.25rem;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.compare-tag.left { left: 0.5rem; }
+.compare-tag.right { right: 0.5rem; }
+
+.compare-range {
+  width: 100%;
+  margin: 0.75rem 0 0;
+  accent-color: var(--blue);
+}
+
+.compare-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.compare-info {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
 .total {
   margin: 0 0 0 auto;
   color: var(--ink-soft);

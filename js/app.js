@@ -20,6 +20,12 @@ const actions = $('actions');
 const zipBtn = $('zip');
 const clearBtn = $('clear');
 const installBtn = $('install');
+const compareDlg = $('compare');
+const compareFrame = $('compare-frame');
+const compareBefore = $('compare-before');
+const compareAfter = $('compare-after');
+const compareRange = $('compare-range');
+const compareInfo = $('compare-info');
 const total = $('total');
 
 const items = [];
@@ -250,6 +256,17 @@ function render(item) {
   dl.addEventListener('click', () => download(r.blob, r.name));
   tools.append(dl, removeBtn(item));
 
+  // HEIC originals cannot be shown in an img, so there is nothing to compare against.
+  if (r.from !== 'heic') {
+    const cmp = document.createElement('button');
+    cmp.type = 'button';
+    cmp.className = 'row-btn';
+    cmp.textContent = 'Compare';
+    cmp.setAttribute('aria-label', 'Compare original and compressed ' + item.file.name);
+    cmp.addEventListener('click', () => openCompare(item));
+    tools.insertBefore(cmp, tools.lastChild);
+  }
+
   const bar = document.createElement('div');
   bar.className = 'bar';
   const fill = document.createElement('i');
@@ -286,6 +303,46 @@ function describe(r) {
   if (r.note === 'kept') return `Already compressed, original kept. ${dims}`;
   return dims;
 }
+
+// ---------- compare ----------
+
+// The original is shown straight from the source file, so nothing extra is kept in memory.
+let compareUrl = null;
+
+function openCompare(item) {
+  const r = item.result;
+  if (compareUrl) URL.revokeObjectURL(compareUrl);
+  compareUrl = URL.createObjectURL(item.file);
+  compareBefore.src = compareUrl;
+  compareAfter.src = r.url;
+  compareRange.value = 50;
+  compareFrame.style.setProperty('--pos', '50%');
+  // Match the frame to the image so the divider never drifts over empty space.
+  compareFrame.style.aspectRatio = `${r.width} / ${r.height}`;
+  compareFrame.style.maxWidth = `calc(65vh * ${r.width} / ${r.height})`;
+  const dims = r.width === r.origWidth ? `${r.width} px wide` : `${r.origWidth} to ${r.width} px wide`;
+  compareInfo.textContent = `${fmtBytes(item.file.size)} to ${fmtBytes(r.blob.size)}, ${dims}`;
+  compareDlg.showModal();
+}
+
+compareRange.addEventListener('input', () => {
+  compareFrame.style.setProperty('--pos', compareRange.value + '%');
+});
+
+$('compare-close').addEventListener('click', () => compareDlg.close());
+
+compareDlg.addEventListener('click', (e) => {
+  if (e.target === compareDlg) compareDlg.close();
+});
+
+compareDlg.addEventListener('close', () => {
+  compareBefore.removeAttribute('src');
+  compareAfter.removeAttribute('src');
+  if (compareUrl) {
+    URL.revokeObjectURL(compareUrl);
+    compareUrl = null;
+  }
+});
 
 function setStatus(item, status) {
   item.status = status;
