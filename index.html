@@ -65,6 +65,22 @@
     </div>
   </main>
 
+  <dialog id="compare" class="compare-dlg" aria-label="Compare original and compressed">
+    <div id="compare-frame" class="compare">
+      <img id="compare-before" alt="Original">
+      <img id="compare-after" alt="Compressed">
+      <i class="compare-line" aria-hidden="true"></i>
+      <span class="compare-tag left" aria-hidden="true">Original</span>
+      <span class="compare-tag right" aria-hidden="true">Compressed</span>
+    </div>
+    <input id="compare-range" class="compare-range" type="range" min="0" max="100" value="50"
+           aria-label="Reveal more of the compressed image">
+    <div class="compare-foot">
+      <p id="compare-info" class="compare-info"></p>
+      <button id="compare-close" class="btn" type="button">Close</button>
+    </div>
+  </dialog>
+
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
