@@ -1,1 +1,8 @@
 node_modules/
+
+# Build output. Produced by `npm run build` and by the Pages workflow.
+js/worker.js
+js/chunks/
+wasm/
+sw.js
+_site/

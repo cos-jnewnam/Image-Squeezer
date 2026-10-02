@@ -4,6 +4,16 @@
   "private": true,
   "type": "module",
   "description": "Browser-only image compressor PWA",
+  "license": "MIT",
+  "author": "Jared Newnam",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cos-jnewnam/Image-Squeezer.git"
+  },
+  "homepage": "https://cos-jnewnam.github.io/Image-Squeezer/",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "node build.mjs"
   },

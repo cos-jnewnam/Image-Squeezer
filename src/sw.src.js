@@ -1,22 +1,10 @@
-// Bump VERSION when you publish a change so installed copies pick it up.
-const VERSION = 'v1';
+// Generated into /sw.js by build.mjs. Edit this file, not the generated one.
+// VERSION is a hash of the precached files, so it changes only when they do.
+const VERSION = '__VERSION__';
 const CACHE = 'image-squeezer-' + VERSION;
 
-const PRECACHE = [
-  './',
-  'index.html',
-  'css/style.css',
-  'js/app.js',
-  'js/zip.js',
-  'js/crc32.js',
-  'js/worker.js',
-  'wasm/mozjpeg_enc.wasm',
-  'wasm/squoosh_oxipng_bg.wasm',
-  'wasm/imagequant_bg.wasm',
-  'manifest.webmanifest',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-];
+const OFFLINE_PAGE = 'offline.html';
+const PRECACHE = __PRECACHE__;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -55,7 +43,13 @@ self.addEventListener('fetch', (event) => {
         event.waitUntil(network);
         return cached;
       }
-      return (await network) || new Response('Offline', { status: 503 });
+      const res = await network;
+      if (res) return res;
+      if (req.mode === 'navigate') {
+        const offline = await cache.match(OFFLINE_PAGE);
+        if (offline) return offline;
+      }
+      return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
     })
   );
 });

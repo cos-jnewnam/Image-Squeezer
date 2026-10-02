@@ -14,24 +14,29 @@ Compresses images in the browser. Nothing is uploaded anywhere. Works offline on
 
 ## Put it on GitHub Pages
 
-1. Create a repository and push everything in this folder to it. The built files are included, so there is no build step on GitHub.
-2. In the repository, open Settings, then Pages. Set the source to the main branch, root folder.
-3. After a minute the site is live at `https://<your-account>.github.io/<repo-name>/`. Share that link.
+1. Push this repository to GitHub.
+2. In the repository, open Settings, then Pages, and set the source to **GitHub Actions**.
+3. Every push to `main` runs `.github/workflows/deploy.yml`, which installs dependencies, runs the build and publishes the result.
+4. After a minute the site is live at `https://<your-account>.github.io/<repo-name>/`. Share that link.
 
 All paths are relative, so it works from a subfolder URL like that without changes.
+
+The build output (`js/worker.js`, `js/chunks/`, `wasm/`, `sw.js`) is not committed. It is generated during the workflow, so the repository holds only source.
 
 ## Changing it
 
 Edit `js/app.js`, `css/style.css` or `index.html` directly. No build needed.
 
-To change the compression code, edit `src/worker.src.js` and run the following.
+To change the compression code or the service worker, edit `src/worker.src.js` or `src/sw.src.js` and run the following.
 
 ```
 npm install
 npm run build
 ```
 
-This rebuilds `js/worker.js` and the `js/chunks` folder, and copies the wasm files into `wasm/`.
+This rebuilds `js/worker.js` and the `js/chunks` folder, copies the wasm files into `wasm/`, and generates `sw.js`.
+
+Node 20 or newer is required.
 
 Settings you are most likely to change in `src/worker.src.js`
 - `JPEG_QUALITY` (80)
@@ -44,10 +49,14 @@ In `js/app.js`
 
 ## Publishing an update
 
-Bump `VERSION` at the top of `sw.js` whenever you push a change. Installed copies keep the old files until that string changes.
+Push to `main`. The build hashes the precached files and writes that hash into `sw.js` as the cache version, so installed copies pick up a change as soon as one actually happens. There is nothing to bump by hand.
 
 ## Notes
 
 - Very large photos need memory to decode. A 10 MB JPEG is fine on a desktop. Phones with little memory may fail on huge files and will show an error on that row.
 - TIFF is not supported because browsers cannot decode it.
 - The HEIC decoder is about 2 MB. It only downloads the first time someone drops a HEIC file that the browser cannot open itself.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
