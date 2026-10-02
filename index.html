@@ -52,6 +52,12 @@
         <output id="quality-value" for="quality">80</output>
         <span id="quality-hint">Lower means smaller files and more blur.</span>
       </div>
+
+      <div class="setting">
+        <label for="target">Target size</label>
+        <input id="target" type="number" inputmode="numeric" min="0" max="20000" step="25" value="0">
+        <span id="target-hint">KB. Leave at 0 to use the quality setting instead.</span>
+      </div>
     </div>
 
     <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
