@@ -189,11 +189,16 @@ async function shrinkPng(png) {
   return optimised.length < png.length ? optimised : png;
 }
 
-async function encodePng(imageData) {
+async function encodePng(imageData, canvas) {
   await Promise.all([readyQuant(), readyOxipng()]);
   const { width, height, data } = imageData;
-  const q = quantize_image(new Uint8Array(data.buffer, data.byteOffset, data.length), width, height, 256);
-  return shrinkPng(await encodeIndexedPng({ width, height, palette: q.palette, indices: q.indices }));
+  try {
+    const q = quantize_image(new Uint8Array(data.buffer, data.byteOffset, data.length), width, height, 256);
+    return await shrinkPng(await encodeIndexedPng({ width, height, palette: q.palette, indices: q.indices }));
+  } catch {
+    // libimagequant traps on some images, so keep every pixel rather than failing outright.
+    return encodeLosslessPng(imageData, canvas);
+  }
 }
 
 // Keeps every pixel: indexed when the image fits 256 colors, otherwise full colour.
@@ -294,7 +299,7 @@ async function compress({ buffer, maxWidth, format, quality, target }) {
     outKind =
       format === 'jpeg' ? 'jpeg' : kind === 'jpeg' ? 'jpeg' : kind === 'png' || kind === 'gif' || alpha ? 'png' : 'jpeg';
     if (outKind === 'png') {
-      out = await encodePng(imageData);
+      out = await encodePng(imageData, canvas);
     } else {
       if (alpha) flattenToWhite(imageData.data);
       const probe = await encodeJpg(imageData, q);
