@@ -111,16 +111,42 @@ body {
 }
 
 .settings {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  display: grid;
   gap: 0.5rem;
   margin: 1rem 0 0;
   color: var(--ink-soft);
   font-size: 0.9375rem;
 }
 
+.setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .settings label { color: var(--ink); font-weight: 600; }
+
+.settings label[for="maxw"],
+.settings label[for="format"],
+.settings label[for="quality"] { min-width: 5.5rem; }
+
+.settings output {
+  min-width: 2ch;
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings input[type="range"] {
+  width: 10rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: var(--blue);
+}
+
+.setting.off { opacity: 0.5; }
 
 .settings input,
 .settings select {

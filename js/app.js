@@ -11,6 +11,9 @@ const picker = $('picker');
 const maxw = $('maxw');
 const format = $('format');
 const formatHint = $('format-hint');
+const quality = $('quality');
+const qualityValue = $('quality-value');
+const qualityHint = $('quality-hint');
 const notice = $('notice');
 const list = $('list');
 const actions = $('actions');
@@ -31,6 +34,8 @@ try {
   if (saved >= 100 && saved <= 10000) maxw.value = saved;
   const savedFormat = localStorage.getItem('format');
   if (savedFormat && [...format.options].some((o) => o.value === savedFormat)) format.value = savedFormat;
+  const savedQuality = Number(localStorage.getItem('quality'));
+  if (savedQuality >= 40 && savedQuality <= 95) quality.value = savedQuality;
 } catch {}
 
 const FORMAT_HINTS = {
@@ -43,7 +48,24 @@ const FORMAT_HINTS = {
 function readFormat() {
   const v = format.value;
   formatHint.textContent = FORMAT_HINTS[v] || '';
+  // PNG output is lossless, so the slider would do nothing.
+  const lossless = v === 'png';
+  quality.disabled = lossless;
+  quality.parentElement.classList.toggle('off', lossless);
+  qualityHint.textContent = lossless
+    ? 'Not used, because PNG is lossless.'
+    : 'Lower means smaller files and more blur.';
   try { localStorage.setItem('format', v); } catch {}
+  return v;
+}
+
+function readQuality() {
+  let v = Math.round(Number(quality.value));
+  if (!Number.isFinite(v) || v < 40) v = 40;
+  if (v > 95) v = 95;
+  quality.value = v;
+  qualityValue.textContent = v;
+  try { localStorage.setItem('quality', String(v)); } catch {}
   return v;
 }
 
@@ -58,7 +80,9 @@ function readMaxWidth() {
 
 maxw.addEventListener('change', readMaxWidth);
 format.addEventListener('change', readFormat);
+quality.addEventListener('input', readQuality);
 readFormat();
+readQuality();
 
 // ---------- helpers ----------
 
@@ -128,7 +152,10 @@ async function run(slot, item) {
   setStatus(item, 'working');
   try {
     const buffer = await item.file.arrayBuffer();
-    slot.worker.postMessage({ id: item.id, buffer, maxWidth: item.maxWidth, format: item.format }, [buffer]);
+    slot.worker.postMessage(
+      { id: item.id, buffer, maxWidth: item.maxWidth, format: item.format, quality: item.quality },
+      [buffer]
+    );
   } catch {
     slot.item = null;
     fail(item, 'This file could not be read.');
@@ -316,8 +343,9 @@ function addFiles(fileList) {
 
   const maxWidth = readMaxWidth();
   const outFormat = readFormat();
+  const outQuality = readQuality();
   for (const file of accepted) {
-    const item = { id: nextId++, file, status: 'queued', maxWidth, format: outFormat };
+    const item = { id: nextId++, file, status: 'queued', maxWidth, format: outFormat, quality: outQuality };
     items.push(item);
     addRow(item);
     if (file.size > MAX_BYTES) {
