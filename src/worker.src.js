@@ -3,8 +3,7 @@ import initOxipng, { optimise } from '@jsquash/oxipng/codec/pkg/squoosh_oxipng.j
 import initQuant, { quantize_image } from '@panda-ai/imagequant';
 import { encodeIndexedPng } from './png-indexed.js';
 
-const JPEG_QUALITY = 80;
-const WEBP_QUALITY = 0.8;
+const DEFAULT_QUALITY = 80;
 
 // ---------- wasm loading ----------
 
@@ -203,19 +202,19 @@ async function encodeLosslessPng(imageData, canvas) {
   return shrinkPng(new Uint8Array(await blob.arrayBuffer()));
 }
 
-async function encodeJpg(imageData) {
+async function encodeJpg(imageData, quality) {
   await readyJpeg();
-  return new Uint8Array(await encodeJpeg(imageData, { quality: JPEG_QUALITY }));
+  return new Uint8Array(await encodeJpeg(imageData, { quality }));
 }
 
-async function encodeWebp(canvas) {
-  const blob = await canvas.convertToBlob({ type: 'image/webp', quality: WEBP_QUALITY });
+async function encodeWebp(canvas, quality) {
+  const blob = await canvas.convertToBlob({ type: 'image/webp', quality: quality / 100 });
   return blob.type === 'image/webp' ? new Uint8Array(await blob.arrayBuffer()) : null;
 }
 
 // ---------- job ----------
 
-async function compress({ buffer, maxWidth, format }) {
+async function compress({ buffer, maxWidth, format, quality }) {
   const bytes = new Uint8Array(buffer);
   const kind = sniff(bytes);
   if (!kind) throw new Error('This file is not a supported image.');
@@ -243,11 +242,12 @@ async function compress({ buffer, maxWidth, format }) {
   const { canvas, imageData } = scaled;
 
   const alpha = hasAlpha(imageData.data);
+  const q = Number.isFinite(quality) ? Math.min(95, Math.max(40, Math.round(quality))) : DEFAULT_QUALITY;
   let outKind;
   let out = null;
 
   if (format === 'webp' || (format === 'auto' && kind === 'webp')) {
-    out = await encodeWebp(canvas);
+    out = await encodeWebp(canvas, q);
     outKind = 'webp';
     if (!out && format === 'webp') throw new Error('This browser cannot save WebP files.');
   }

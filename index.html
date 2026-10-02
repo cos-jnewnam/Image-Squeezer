@@ -29,18 +29,29 @@
     </section>
 
     <div class="settings">
-      <label for="maxw">Max width</label>
-      <input id="maxw" type="number" inputmode="numeric" min="100" max="10000" step="50" value="2000">
-      <span>px. Smaller images are never enlarged.</span>
+      <div class="setting">
+        <label for="maxw">Max width</label>
+        <input id="maxw" type="number" inputmode="numeric" min="100" max="10000" step="50" value="2000">
+        <span>px. Smaller images are never enlarged.</span>
+      </div>
 
-      <label for="format">Save as</label>
-      <select id="format">
-        <option value="auto">Auto</option>
-        <option value="jpeg">JPG</option>
-        <option value="png">PNG</option>
-        <option value="webp">WebP</option>
-      </select>
-      <span id="format-hint">Auto picks whichever format comes out smallest.</span>
+      <div class="setting">
+        <label for="format">Save as</label>
+        <select id="format">
+          <option value="auto">Auto</option>
+          <option value="jpeg">JPG</option>
+          <option value="png">PNG</option>
+          <option value="webp">WebP</option>
+        </select>
+        <span id="format-hint">Auto picks whichever format comes out smallest.</span>
+      </div>
+
+      <div class="setting">
+        <label for="quality">Quality</label>
+        <input id="quality" type="range" min="40" max="95" step="5" value="80">
+        <output id="quality-value" for="quality">80</output>
+        <span id="quality-hint">Lower means smaller files and more blur.</span>
+      </div>
     </div>
 
     <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
