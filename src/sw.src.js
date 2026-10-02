@@ -6,6 +6,9 @@ const CACHE = 'image-squeezer-' + VERSION;
 const OFFLINE_PAGE = 'offline.html';
 const PRECACHE = __PRECACHE__;
 
+// Shared files are parked here for the page to collect, so it survives version changes.
+const SHARE_CACHE = 'image-squeezer-shared';
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
@@ -19,16 +22,47 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== SHARE_CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
+
+// The share sheet POSTs here. Stash the files, then redirect to a normal page load.
+async function receiveShare(request) {
+  try {
+    const form = await request.formData();
+    const files = form.getAll('images').filter((f) => f && typeof f.name === 'string');
+    const cache = await caches.open(SHARE_CACHE);
+    for (const key of await cache.keys()) await cache.delete(key);
+    await Promise.all(
+      files.slice(0, 5).map((file, i) =>
+        cache.put(
+          new Request(`shared-${i}`),
+          new Response(file, {
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+              'X-Shared-Name': encodeURIComponent(file.name),
+            },
+          })
+        )
+      )
+    );
+  } catch {}
+  return Response.redirect('./?shared=1', 303);
+}
 
 // Serve from cache first and refresh the cached copy in the background.
 // Files not listed above (the HEIC decoder, for one) are cached the first time they are used.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (req.method === 'POST' && url.pathname.endsWith('/share-target')) {
+    event.respondWith(receiveShare(req));
+    return;
+  }
+  if (req.method !== 'GET') return;
 
   event.respondWith(
     caches.open(CACHE).then(async (cache) => {

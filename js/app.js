@@ -435,6 +435,32 @@ window.addEventListener('paste', (e) => {
   if (e.clipboardData && e.clipboardData.files.length) addFiles(e.clipboardData.files);
 });
 
+// ---------- shared files ----------
+
+// Picks up anything the service worker parked for us after a share sheet POST.
+async function collectShared() {
+  const url = new URL(location.href);
+  if (url.searchParams.get('shared') !== '1') return;
+  url.searchParams.delete('shared');
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+  if (!('caches' in window)) return;
+  try {
+    const cache = await caches.open('image-squeezer-shared');
+    const keys = (await cache.keys()).sort((a, b) => a.url.localeCompare(b.url));
+    const files = [];
+    for (const key of keys) {
+      const res = await cache.match(key);
+      await cache.delete(key);
+      if (!res) continue;
+      const name = decodeURIComponent(res.headers.get('X-Shared-Name') || 'shared-image');
+      files.push(new File([await res.blob()], name, { type: res.headers.get('Content-Type') || '' }));
+    }
+    if (files.length) addFiles(files);
+  } catch {}
+}
+
+collectShared();
+
 // ---------- offline support ----------
 
 if ('serviceWorker' in navigator) {
