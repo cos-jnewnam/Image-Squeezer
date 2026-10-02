@@ -255,6 +255,33 @@ async function shareFiles(files, title) {
   }
 }
 
+function canCopyImages() {
+  return typeof ClipboardItem === 'function' && !!navigator.clipboard?.write;
+}
+
+// Chrome only accepts PNG on the clipboard, so anything else is redrawn.
+async function toPngBlob(blob) {
+  if (blob.type === 'image/png') return blob;
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0);
+    return await canvas.convertToBlob({ type: 'image/png' });
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function copyImage(blob, name) {
+  try {
+    // Passing a promise keeps the write inside the user gesture while the PNG is made.
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': toPngBlob(blob) })]);
+    say(`Copied ${name} to the clipboard.`);
+  } catch (err) {
+    say('Copying failed: ' + err.message);
+  }
+}
+
 function render(item) {
   const { thumb, tools, detail } = item.el;
   thumb.replaceChildren();
@@ -305,6 +332,16 @@ function render(item) {
     sh.setAttribute('aria-label', 'Share ' + r.name);
     sh.addEventListener('click', () => shareFiles([shareFile], r.name));
     tools.insertBefore(sh, tools.lastChild);
+  }
+
+  if (canCopyImages()) {
+    const cp = document.createElement('button');
+    cp.type = 'button';
+    cp.className = 'row-btn';
+    cp.textContent = 'Copy';
+    cp.setAttribute('aria-label', 'Copy ' + r.name + ' to the clipboard');
+    cp.addEventListener('click', () => copyImage(r.blob, r.name));
+    tools.insertBefore(cp, tools.lastChild);
   }
 
   // HEIC originals cannot be shown in an img, so there is nothing to compare against.
