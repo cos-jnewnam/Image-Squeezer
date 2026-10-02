@@ -51,6 +51,11 @@ In `js/app.js`
 
 Push to `main`. The build hashes the precached files and writes that hash into `sw.js` as the cache version, so installed copies pick up a change as soon as one actually happens. There is nothing to bump by hand.
 
+## Todo
+
+- **Pin down what makes the quantizer trap.** `quantize_image` from `@panda-ai/imagequant` panics with a wasm `unreachable` error on some images. `encodePng` catches it and falls back to lossless PNG, so nothing fails outright, but the fallback produces a larger file and says nothing about it. The trigger is still unknown: it is not size related, and several images that reproduced it earlier could not be reproduced later from regenerated copies. Worth finding a reliable repro before deciding on a real fix.
+- **Check HEIC orientation.** HEIC files are decoded through libheif rather than `createImageBitmap`, so they get none of the EXIF orientation handling the other formats get for free. Phone HEICs routinely carry a rotation. Untested, because no HEIC sample was on hand. If they do come out rotated, the fix is to read the rotation out of the HEIF metadata and apply it during scaling.
+
 ## Notes
 
 - Very large photos need memory to decode. A 10 MB JPEG is fine on a desktop. Phones with little memory may fail on huge files and will show an error on that row.
