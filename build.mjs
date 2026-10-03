@@ -42,6 +42,7 @@ const PRECACHE_FILES = [
   'wasm/imagequant_bg.wasm',
   'icons/icon-192.png',
   'icons/icon-512.png',
+  'icons/icon-maskable-512.png',
   'img/img-squeezer-bg.jpeg',
   'img/image-squeezer-vice-grip.png',
 ];
