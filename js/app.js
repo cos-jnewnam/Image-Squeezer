@@ -22,6 +22,7 @@ const actions = $('actions');
 const zipBtn = $('zip');
 const clearBtn = $('clear');
 const installBtn = $('install');
+const themeBtn = $('theme');
 const compareDlg = $('compare');
 const compareFrame = $('compare-frame');
 const compareBefore = $('compare-before');
@@ -34,6 +35,32 @@ const items = [];
 const queue = [];
 const usedNames = new Set();
 let nextId = 1;
+
+// ---------- theme ----------
+
+const systemDark = matchMedia('(prefers-color-scheme: dark)');
+
+function paintTheme() {
+  const choice = document.documentElement.dataset.theme;
+  const dark = choice ? choice === 'dark' : systemDark.matches;
+  const label = dark ? 'Switch to the light theme' : 'Switch to the dark theme';
+  themeBtn.firstElementChild.className = dark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  themeBtn.setAttribute('aria-label', label);
+  themeBtn.title = label;
+}
+
+themeBtn.addEventListener('click', () => {
+  const choice = document.documentElement.dataset.theme;
+  const dark = choice ? choice === 'dark' : systemDark.matches;
+  const next = dark ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch {}
+  paintTheme();
+});
+
+// Only matters until someone picks a theme by hand.
+systemDark.addEventListener('change', paintTheme);
+paintTheme();
 
 // ---------- settings ----------
 
@@ -209,7 +236,7 @@ function finish(slot, data) {
 
 function addRow(item) {
   const li = document.createElement('li');
-  li.className = 'row';
+  li.className = 'img-row';
 
   const thumb = document.createElement('div');
   thumb.className = 'thumb';
