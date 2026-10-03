@@ -30,10 +30,12 @@ console.log('wasm copied');
 // ~2 MB and gets cached on first use instead.
 const PRECACHE_FILES = [
   'index.html',
+  'changelog.html',
   'offline.html',
   'manifest.webmanifest',
   'css/style.css',
   'js/app.js',
+  'js/theme.js',
   'js/zip.js',
   'js/crc32.js',
   'js/worker.js',

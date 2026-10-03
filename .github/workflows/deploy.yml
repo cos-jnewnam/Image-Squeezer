@@ -28,7 +28,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir _site
-          cp -r index.html offline.html sw.js manifest.webmanifest css js wasm icons img _site/
+          cp -r index.html changelog.html offline.html sw.js manifest.webmanifest css js wasm icons img _site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

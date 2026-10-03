@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Changelog &middot; Image Squeezer</title>
+  <meta name="description" content="What has changed in Image Squeezer, grouped by the part of the app it touched.">
+  <meta name="theme-color" content="#eef2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1822" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Applied before first paint so a saved theme never flashes the wrong colors.
+    try {
+      const t = localStorage.getItem('theme');
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    } catch {}
+  </script>
+</head>
+<body>
+  <nav class="topbar">
+    <div class="container d-flex align-items-center gap-3">
+      <a class="brand" href="./">
+        <span class="brand-mark"><i class="fa-solid fa-compress" aria-hidden="true"></i></span>
+        <span class="brand-text">Image<strong>Squeezer</strong></span>
+      </a>
+      <a class="nav-link-plain ms-auto" href="changelog.html" aria-current="page">Changelog</a>
+      <button id="theme" class="icon-btn" type="button" aria-label="Switch theme">
+        <i class="fa-solid fa-moon" aria-hidden="true"></i>
+      </button>
+    </div>
+  </nav>
+
+  <main class="container main log">
+    <header class="log-head">
+      <h1>Changelog</h1>
+      <p class="log-lede">
+        Grouped by the part of the app each change touched, newest first within each group.
+        Every entry links to the commit that made it.
+      </p>
+      <p class="log-note">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        Image Squeezer has no release numbers. The service worker caches against a hash of the
+        shipped files, so an installed copy updates whenever those files actually change.
+      </p>
+    </header>
+
+    <section class="log-group" aria-labelledby="g-compression">
+      <h2 id="g-compression" class="log-group-head">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i> Compression and output
+      </h2>
+      <ul class="log-list">
+        <li class="log-item">
+          <h3>Fall back to lossless PNG when the quantizer traps</h3>
+          <p>
+            <code>quantize_image</code> panics with a wasm <code>unreachable</code> error on some
+            images. Encoding now catches that and produces a lossless PNG instead of failing the
+            file outright. The fallback is larger than a quantized PNG would have been.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/70d1248">70d1248</a>
+        </li>
+        <li class="log-item">
+          <h3>Target file size</h3>
+          <p>
+            Set a size in KB and the encoder searches for a quality that lands under it, instead of
+            holding the quality slider fixed. Quality is now also passed through to the JPEG encoder,
+            which it previously was not.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/5edcebd">5edcebd</a>
+        </li>
+        <li class="log-item">
+          <h3>Quality slider</h3>
+          <p>Exposes the encoder quality from 40 to 95 rather than leaving it pinned at the default 80.</p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/996d906">996d906</a>
+        </li>
+        <li class="log-item">
+          <h3>Output format picker</h3>
+          <p>
+            Choose JPG, PNG or WebP explicitly, or leave it on Auto, which encodes to several and
+            keeps whichever comes out smallest.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/93ae8b4">93ae8b4</a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="log-group" aria-labelledby="g-results">
+      <h2 id="g-results" class="log-group-head">
+        <i class="fa-solid fa-code-compare" aria-hidden="true"></i> Working with results
+      </h2>
+      <ul class="log-list">
+        <li class="log-item">
+          <h3>Share buttons removed</h3>
+          <p>
+            The per-result Share button was dropped. Coverage for sharing files through
+            <code>navigator.share</code> was inconsistent enough that the button was often present
+            and non-functional. Copy and download cover the same ground.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/e398d08">e398d08</a>
+        </li>
+        <li class="log-item">
+          <h3>Copy button</h3>
+          <p>Puts a compressed result straight on the clipboard, for pasting into a document or chat without a round trip through the downloads folder.</p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/96584f9">96584f9</a>
+        </li>
+        <li class="log-item">
+          <h3>Before and after comparison</h3>
+          <p>A slider wipes between the original and the compressed version at full size, so a quality setting can be judged before committing to it.</p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/4f3262c">4f3262c</a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="log-group" aria-labelledby="g-integration">
+      <h2 id="g-integration" class="log-group-head">
+        <i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> Installing and OS integration
+      </h2>
+      <ul class="log-list">
+        <li class="log-item">
+          <h3>Precache the maskable icon</h3>
+          <p>
+            The maskable icon was referenced by the manifest but left out of the precache list, so a
+            cold offline install could be missing it.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/815f9df">815f9df</a>
+        </li>
+        <li class="log-item">
+          <h3>Open image files from the operating system</h3>
+          <p>Registers as a handler for the supported image types, so an installed copy can be set as the app that opens a JPG, PNG, WebP, HEIC and the rest.</p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/91e4951">91e4951</a>
+        </li>
+        <li class="log-item">
+          <h3>Accept images from the system share sheet</h3>
+          <p>
+            Share images to Image Squeezer from another app. The service worker takes the POST,
+            parks the files in a cache, and redirects to a normal page load that picks them up.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/be7d2bf">be7d2bf</a>
+        </li>
+        <li class="log-item">
+          <h3>In-page install button</h3>
+          <p>Surfaces installation without digging through a browser menu. Stays hidden in browsers that do not fire the install prompt event.</p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/f4b9d8e">f4b9d8e</a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="log-group" aria-labelledby="g-interface">
+      <h2 id="g-interface" class="log-group-head">
+        <i class="fa-solid fa-palette" aria-hidden="true"></i> Interface
+      </h2>
+      <ul class="log-list">
+        <li class="log-item">
+          <h3>Redesign around the squeezer artwork</h3>
+          <p>
+            New hero layout, a light and dark theme with a toggle that remembers the choice, and a
+            reworked results list.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/366d81c">366d81c</a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="log-group" aria-labelledby="g-build">
+      <h2 id="g-build" class="log-group-head">
+        <i class="fa-solid fa-gears" aria-hidden="true"></i> Build and deployment
+      </h2>
+      <ul class="log-list">
+        <li class="log-item">
+          <h3>Build on CI instead of committing build output</h3>
+          <p>
+            The bundled worker, the wasm codecs and the generated service worker are no longer in the
+            repository. A GitHub Actions workflow builds them on every push to <code>main</code> and
+            publishes to Pages, so the repository holds only source.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/5eab4b6">5eab4b6</a>
+        </li>
+        <li class="log-item">
+          <h3>Initial commit</h3>
+          <p>
+            Drop, resize and re-encode up to five images at a time, entirely in the browser, with
+            per-image and zipped downloads and an offline-capable service worker.
+          </p>
+          <a class="log-link" href="https://github.com/cos-jnewnam/Image-Squeezer/commit/44efe4a">44efe4a</a>
+        </li>
+      </ul>
+    </section>
+
+    <p class="log-back"><a href="./"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to the squeezer</a></p>
+  </main>
+
+  <footer class="foot">
+    <div class="container">
+      <p><i class="fa-solid fa-compress" aria-hidden="true"></i> Image Squeezer &mdash; a local-first image compressor.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="js/theme.js"></script>
+</body>
+</html>
